@@ -1,133 +1,130 @@
+/**
+ * In order to reach the destination we iterate through all possible paths for our
+ * chessboard piece using breath first search
+ */
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Scanner;
 
 public class ChessBoard {
-    static class Coordinate {
-        int x, y;
+  private static int BOARD_SIZE = 30;
+  static class Coordinate {
+    int x, y, distance;
 
-        Coordinate(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
+    Coordinate(int x, int y) { this(x, y, 0); }
 
-        @Override
-        public String toString() {
-            return String.valueOf(x) + String.valueOf(y);
-        }
+    Coordinate(int x, int y, int distance) {
+      this.x = x;
+      this.y = y;
+      this.distance = distance;
     }
 
-    private final static Coordinate[] moves = new Coordinate[] {
-        new Coordinate(-1,2),
-        new Coordinate(1,2),
-        new Coordinate(2,1),
-        new Coordinate(2,-1),
-        new Coordinate(1,-2),
-        new Coordinate(-1,-2),
-        new Coordinate(-2,-1),
-        new Coordinate(-2,1)
-    };
-    
-    public static void main(String[] args) {
-        Scanner in = new Scanner(System.in);
-        Coordinate start = new Coordinate(in.nextInt(), in.nextInt());
-        Coordinate end = new Coordinate(in.nextInt(), in.nextInt());
-
-        int steps = shortestPath(start, end);
-        System.out.println(steps);
-        in.close();
+    @Override
+    public String toString() {
+      return String.valueOf(x) + String.valueOf(y);
     }
 
-    public static boolean validMove(Coordinate start, Coordinate end) {
-        int xDiff = Math.abs(end.x - start.x);
-        int yDiff = Math.abs(end.y - start.y);
+    /**
+     * We validate wether or not the end coordinate is within our reach
+     * @param end the destination
+     * @return If it's possible to reach in next step
+     */
+    boolean validMove(Coordinate end) {
+      int xDiff = Math.abs(end.x - this.x);
+      int yDiff = Math.abs(end.y - this.y);
 
-        // The difference between start and end in x and y should always be a
-        // combination of 1 and 2 (ex, [1,2] and [2,1]) or if the end equals to the
-        // start
-        // we should return true
-        if (xDiff == 1 && yDiff == 2 || xDiff == 2 && yDiff == 1 || xDiff == 0 && yDiff == 0) {
-            return true;
-        }
-        return false;
+      // The difference between start and end in x and y should always be a
+      // combination of 1 and 2 (ex, [1,2] and [2,1]) or if the end equals to
+      // the start we should return true
+      return ((xDiff == 1 && yDiff == 2) || (xDiff == 2 && yDiff == 1) ||
+              (xDiff == 0 && yDiff == 0));
     }
 
-    public static int shortestPath(Coordinate start, Coordinate end) {
-        HashSet<String> visited = new HashSet<>();
-        visited.add(start.toString());
-        return shortestPath(start, end, visited, 0);
+    /**
+     * We move with the help of the move coordinate by adding its values
+     * and the current coordinate values and we increment the distance by one
+     * @return The new position
+     */
+    Coordinate move(Coordinate move) {
+      Coordinate newCoordinate =
+          new Coordinate(x + move.x, y + move.y, distance + 1);
+      return newCoordinate;
     }
 
-    public static int shortestPath(Coordinate start, Coordinate end, HashSet<String> visited, int steps) {
-        //We got out of the board
-        if (start.x < 0 || start.x > 7 || start.y < 0 || start.y > 7) {
-            return -1;
-        } else if (validMove(start, end)) {
-            return steps + 1;
-        }
+    /**
+     * Validate whether or not the piece is inside the board
+     * @return If it's inside the board
+     */
+    boolean isInsideTheBoard() {
+      return !(x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE);
+    }
+  }
 
-        ++steps;
-        //We already when above the max amont of posible steps
-        if (steps > 6) {
-            return -1;
-        }
+  private final static Coordinate[] moves = new Coordinate[] {
+      new Coordinate(-1, 2),  new Coordinate(1, 2),  new Coordinate(2, 1),
+      new Coordinate(2, -1),  new Coordinate(1, -2), new Coordinate(-1, -2),
+      new Coordinate(-2, -1), new Coordinate(-2, 1)};
 
-        ArrayList<Coordinate> paths = getPaths(start, end, visited);
-        int minSteps = Integer.MAX_VALUE;
-        //If we only have one option we simply go through it
-        //but if we have more than one we do some more validation
-        if (paths.size() == 1) {
-            minSteps = shortestPath(paths.get(0), end, visited, steps);
-        } else {
-            for (int i = 0; i < paths.size(); i++ ) {
-                Coordinate next = paths.get(i);
-                
-                //We avoid going to the paths in the same X or Y position of the end
-                //As these usually contain the longest paths
-                if (next.x != end.x && next.y != end.y) {
-                    visited.add(next.toString());
-                    int pathSteps = shortestPath(next, end, visited, steps);
-                    if (pathSteps > 0  && pathSteps < minSteps) {
-                        minSteps = pathSteps;
-                    }
-                }
-            }
-        }
-        
-        return minSteps;
+  public static void main(String[] args) {
+    Scanner in = new Scanner(System.in);
+    Coordinate start = new Coordinate(in.nextInt(), in.nextInt());
+    Coordinate end = new Coordinate(in.nextInt(), in.nextInt());
+
+    int steps = shortestPath(start, end);
+    System.out.println(steps);
+    in.close();
+  }
+
+  public static int shortestPath(Coordinate start, Coordinate end) {
+    HashSet<String> visited = new HashSet<>();
+    visited.add(start.toString());
+    return shortestPath(start, end, visited, 0);
+  }
+
+  public static int shortestPath(Coordinate start, Coordinate end,
+                                 HashSet<String> visited, int steps) {
+    // Validate that the pieces are inside the board
+    if (!start.isInsideTheBoard() || !end.isInsideTheBoard()) {
+      return -1;
     }
 
-    public static int distance(Coordinate start, Coordinate end) {
-        return Math.abs(start.x - end.x) + Math.abs(start.y - end.y);
+    Queue<Coordinate> paths = new LinkedList<>();
+    paths.add(start);
+
+    while (!paths.isEmpty()) {
+      Coordinate p = paths.remove();
+
+      if (p.validMove(end)) {
+          //We add the final move to the end
+        return p.distance + 1;
+      }
+
+      paths.addAll(getAllPaths(p, visited));
     }
 
-    //We get all posible paths using start as our starting point
-    public static ArrayList<Coordinate> getPaths(Coordinate start, Coordinate end, HashSet<String> visited) {
-        HashMap<Integer, ArrayList<Coordinate>> pathsDistance = new HashMap<>();
-        int minDistance = Integer.MAX_VALUE;
-        //We calculate all posible paths from the start
-        for (Coordinate move : moves) {
-            Coordinate next = new Coordinate(start.x + move.x, start.y + move.y);
-            
-            //We validate that we haven't gone through the next step
-            if (!visited.contains(next.toString())) {
-                int distance = distance(next, end);
-                //We should avoid getting to the positon right next to the end to avoid
-                //unnecessary steps (posible loops)
-                if (distance > 1 && distance < minDistance) {
-                    ArrayList<Coordinate> updatedPaths = pathsDistance.get(distance);
-                    if (updatedPaths == null) {
-                        updatedPaths = new ArrayList<Coordinate>();
-                    }
-                    updatedPaths.add(next);
-                    pathsDistance.put(distance, updatedPaths);
-                    minDistance = distance;
-                }
-            }
-        }
-        //We return the closest to the end and that is not 1 square next to it
-        return pathsDistance.get(minDistance);
+    return Integer.MAX_VALUE;
+  }
+
+  /**
+   * We check all 8 possible moves and add all of them that are inside the board and we haven't
+   * visited
+   * @param start Starting position
+   * @param visited All visited coordinates
+   * @return A list of all the possible paths
+   */
+  private static ArrayList<Coordinate> getAllPaths(Coordinate start,
+                                                   HashSet<String> visited) {
+    ArrayList<Coordinate> paths = new ArrayList<>();
+    for (Coordinate move : moves) {
+      Coordinate next = start.move(move);
+
+      if (next.isInsideTheBoard() && visited.add(next.toString())) {
+        paths.add(next);
+      }
     }
 
+    return paths;
+  }
 }
